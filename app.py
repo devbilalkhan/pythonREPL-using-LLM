@@ -75,10 +75,13 @@ with col2:
         )
 
 if code:  
-    if st.button("Run"):     
+    if st.button("Run Code"):     
         result = python_repl.run(code)
         if result:
             color = "#f63366" if "Error" in result else "#00ff00"
+           
+            st.markdown(f"<p style='font-family:monospace; color: {color};'>Output:</p>", unsafe_allow_html=True)
             st.markdown(f"<p style='font-family:monospace; color: {color};'>{result}</p>", unsafe_allow_html=True)
         else:
+            st.markdown("<p style='font-family:monospace; color: #f63366;'>Output:</p>", unsafe_allow_html=True)
             st.markdown("<p style='font-family:monospace; color: #f63366;'>No output from the code. Please ensure that you have a print statement in your code.</p>", unsafe_allow_html=True)
