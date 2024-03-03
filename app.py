@@ -39,20 +39,26 @@ with col1:
 disable_text_generation = st.checkbox('Disable autocomplete', value=False)
 response = ""
 
+# Initialize session state if it doesn't exist
+if 'response' not in st.session_state:
+    st.session_state['response'] = ""
+
 with col2:
-    
     st.markdown("### Autocompletion Suggestions")
     with st.spinner("Please wait a while for autocompletion to load"):
         if not disable_text_generation:
-            llm=OpenAI(temperature=0)
-            agent = create_python_agent(llm, tool=PythonREPLTool(), verbose=True)
-            response = agent.run(f"""Given the following incomplete Python code snippet, 
-                           provide the code that logically continues or completes it:\n\n{code}\n\n
-                           # Your completion should maintain the logic, structure, and intent of the original code and follow the python syntax and prettier format and 4 spaces indentation.""")
+            # Only generate a new response if the code has changed
+            if st.session_state['response'] == "" or st.session_state['last_code'] != code:
+                llm=OpenAI(temperature=0)
+                agent = create_python_agent(llm, tool=PythonREPLTool(), verbose=True)
+                st.session_state['response'] = agent.run(f"""Given the following incomplete Python code snippet, 
+                               provide the code that logically continues or completes it:\n\n{code}\n\n
+                               # Your completion should maintain the logic, structure, and intent of the original code and follow the python syntax and prettier format and 4 spaces indentation.""")
+                st.session_state['last_code'] = code
         else:
-          st.markdown("<span style='background-color:#f63366; padding:2px 4px; border-radius:5px;'>Autocomplete is disabled</span>", unsafe_allow_html=True)
+            st.markdown("<span style='background-color:#f63366; padding:2px 4px; border-radius:5px;'>Autocomplete is disabled</span>", unsafe_allow_html=True)
 
-    if response != "":
+    if st.session_state['response'] != "":
         response_editor = st_ace(
             language="python",
             theme="dracula",
@@ -64,13 +70,15 @@ with col2:
             wrap=True,
             auto_update=True,
             placeholder="Response will be displayed here",
-            value=str(response),
+            value=str(st.session_state['response']),
             readonly=True,
         )
-st.write(code)
+
 if code:  
     if st.button("Run"):     
         result = python_repl.run(code)
-        
-        color = "#f63366" if "Error" in result else "#00ff00"
-        st.markdown(f"<p style='font-family:monospace; color: {color};'>{result}</p>", unsafe_allow_html=True)
+        if result:
+            color = "#f63366" if "Error" in result else "#00ff00"
+            st.markdown(f"<p style='font-family:monospace; color: {color};'>{result}</p>", unsafe_allow_html=True)
+        else:
+            st.markdown("<p style='font-family:monospace; color: #f63366;'>No output from the code. Please ensure that you have a print statement in your code.</p>", unsafe_allow_html=True)
