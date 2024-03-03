@@ -1,5 +1,6 @@
 def get_default_code():
     return  """
+# This is an example code. You can write your own code here.
 class Person:
     def __init__(self, name, age):
         self.name = name
