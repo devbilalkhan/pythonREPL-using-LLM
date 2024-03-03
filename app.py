@@ -47,5 +47,11 @@ if code:
     if st.button("Run"):     
         result = python_repl.run(code)
         
+        # Check if the result is an error message
+        if "Error" in result:
+            color = "#f63366"  # Red for errors
+        else:
+            color = "#00ff00"  # Green for successful output
+        
         # Display the result with custom styling
-        st.markdown(f"<p style='font-family:monospace; color: #f63366;'>{result}</p>", unsafe_allow_html=True)
+        st.markdown(f"<p style='font-family:monospace; color: {color};'>{result}</p>", unsafe_allow_html=True)
