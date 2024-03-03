@@ -1,57 +1,76 @@
-# Import necessary modules
 from langchain.agents import Tool
 from langchain_experimental.utilities import PythonREPL
 import streamlit as st
 from streamlit_ace import st_ace
 import openai
 from utils import get_default_code
+from langchain_experimental.agents.agent_toolkits.python.base import create_python_agent
+from langchain.llms import OpenAI
+from langchain_experimental.tools import PythonREPLTool
+import os
 
-# Initialize Python REPL
+os.environ["OPENAI_API_KEY"] = st.secrets["OPENAI_API_KEY"]
 python_repl = PythonREPL()
 
-# Set the page title with page config
-st.set_page_config(page_title="PythonREPL", page_icon=":snake:")
+st.set_page_config(page_title="PythonREPL", page_icon=":snake:", layout="wide")
+st.title(":snake: PythonREPL with Langchain")
+st.markdown("### Ready to Code? 🚀 Let's Autocomplete!")
+st.markdown("1. Write a well-commented Python function `fibonacci(n)` to return the first `n` numbers in the Fibonacci series.")
+st.markdown("2. Create a simple Python function `is_prime(num)` that checks if `num` is a prime number and returns `True` or `False`.")
+st.markdown("3. Draft a Python function `factorial(x)` that calculates and returns the factorial of a given number `x`.")
 
-# Add custom CSS for padding in the Ace editor
-st.markdown(
-    """
-    <style>
-    .ace_editor {
-        padding: 10px !important;
-    }
-    </style>
-    """,
-    unsafe_allow_html=True,
-)
+col1, col2 = st.columns(2)
 
-# Set the title of the page with snake icon
-st.title(":snake: PythonREPL")
+with col1:
+  st.markdown("### Type your Python code here:")
+  code = st_ace(
+      language="python",
+      theme="dracula",
+      keybinding="vscode",
+      font_size=16,
+      tab_size=4,
+      show_gutter=True,
+      show_print_margin=True,
+      wrap=True,
+      auto_update=True,
+      placeholder="Enter your code here",
+  )
 
-# Create an Ace editor with default code
-code = st_ace(
-    language="python",
-    theme="dracula",
-    keybinding="vscode",
-    font_size=16,
-    tab_size=4,
-    show_gutter=True,
-    show_print_margin=True,
-    wrap=True,
-    auto_update=True,
-    placeholder="Enter your code here",
-    value=get_default_code(),
-)
+disable_text_generation = st.checkbox('Disable autocomplete', value=False)
+response = ""
 
-# Run the code in the Ace editor when the "Run" button is clicked
+with col2:
+    
+    st.markdown("### Autocompletion Suggestions")
+    with st.spinner("Please wait a while for autocompletion to load"):
+        if not disable_text_generation:
+            llm=OpenAI(temperature=0)
+            agent = create_python_agent(llm, tool=PythonREPLTool(), verbose=True)
+            response = agent.run(f"""Given the following incomplete Python code snippet, 
+                           provide the code that logically continues or completes it:\n\n{code}\n\n
+                           # Your completion should maintain the logic, structure, and intent of the original code and follow the python syntax and prettier format and 4 spaces indentation.""")
+        else:
+          st.markdown("<span style='background-color:#f63366; padding:2px 4px; border-radius:5px;'>Autocomplete is disabled</span>", unsafe_allow_html=True)
+
+    if response != "":
+        response_editor = st_ace(
+            language="python",
+            theme="dracula",
+            keybinding="vscode",
+            font_size=16,
+            tab_size=4,
+            show_gutter=True,
+            show_print_margin=True,
+            wrap=True,
+            auto_update=True,
+            placeholder="Response will be displayed here",
+            value=str(response),
+            readonly=True,
+        )
+st.write(code)
 if code:  
     if st.button("Run"):     
         result = python_repl.run(code)
         
-        # Check if the result is an error message
-        if "Error" in result:
-            color = "#f63366"  # Red for errors
-        else:
-            color = "#00ff00"  # Green for successful output
-        
-        # Display the result with custom styling
+        color = "#f63366" if "Error" in result else "#00ff00"
         st.markdown(f"<p style='font-family:monospace; color: {color};'>{result}</p>", unsafe_allow_html=True)
